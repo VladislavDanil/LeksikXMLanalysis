@@ -2,8 +2,9 @@ package xml_analysis;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 
 /**
  * XMLTokener реализует методы дл€ парсинга xml документа.
@@ -15,9 +16,8 @@ public class XMLTokener{
    @SuppressWarnings("unused")
 private long    character;
    private boolean eof;
-   private long    index;
-   @SuppressWarnings("unused")
-private long    line;
+   public long    index;
+   public long    line;
    public char    previous;
    private Reader  reader;
    private boolean usePrevious;
@@ -403,7 +403,7 @@ private long    line;
       *  онструктор XMLTokener из строки.
       * @param строку дл€ другого конструктора.
       */
-     public XMLTokener(String s) {
-    	 this(new StringReader(s));
+     public XMLTokener(InputStream s) {
+    	 this(new InputStreamReader(s));
      }
 }
