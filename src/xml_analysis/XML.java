@@ -1,6 +1,7 @@
 package xml_analysis;
 
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 
 
 
@@ -12,6 +13,7 @@ import java.io.InputStream;
 @SuppressWarnings("boxing")
 public class XML {
     public static String errorStack = "";
+    
     public static final String LINE = "______________________________________________________________\n"; 
     /** Символ '&amp;'. */
     public static final Character AMP = '&';
@@ -74,21 +76,36 @@ public class XML {
      */
     private static boolean parse(XMLTokener x, StringBuilder context, String name)
             {
+    	int characterPosition;
+    	int position = 0;
+    	int linePosition = 0;
         char c;
-        int i;
+        int i = 0;
         StringBuilder tempContext = new StringBuilder();
-        String string;
-        String tagName;
+        String string = null;
+        String tagName = "";
+        String tagNameTemp = "";
         Object token;
+        position = (int) x.index +1;
+        linePosition = (int) x.line;
+        characterPosition = (int) x.character;
+        /*здесь будут появлятся названия тегов*/
         token = x.nextToken();
+        /*неоптимальный подход, но все же*/
+        tagNameTemp = token.toString() + "(" + (x.indexTag +1) +"," + x.lineTag+"," + x.characterTag+")";
+        position = (int) x.index + 1;
+        linePosition = (int) x.line;
+        characterPosition = (int) x.character;
         if (token == BANG) {
-        	context.append(token.toString() + " - восклицательный знак \n");
+        	//context.append(token.toString() + " ("+ x.index + ")" + " - восклицательный знак \n");
             c = x.next();
             if (c == '-') {
-            	context.append(c + " - тире \n");
-            	context.append(LINE);
+            	/*
+                context.append(c + " - тире \n");
+            	context.append(LINE);*/
                 if (x.next() == '-') {
-                	context.append(c + " - тире \n");
+                	//здесь возможно будет обработка коментариев
+                	/*context.append(c + " - тире \n");
                 	context.append(LINE);
                 	context.append("коментарий пропущен\n");
                 	context.append(LINE);
@@ -97,7 +114,7 @@ public class XML {
                 	context.append(c + " - тире \n");
                 	context.append(LINE);
                 	context.append("> - закрывающий тег\n");
-                	context.append(LINE);
+                	context.append(LINE);*/
                     x.skipPast("-->");
                     return false;
                 }
@@ -137,9 +154,12 @@ public class XML {
             x.skipPast("?>");
             return false;
         } else if (token == SLASH) {
-        	context.append(token.toString() + " - слэш \n");
+        	context.append(token.toString()+" ("+ ((int)x.index + 1) + "," + x.line + "," + x.character + ")" + "- слэш \n");
         	context.append(LINE);
             token = x.nextToken();
+            position = (int) x.indexTag +1;
+        	linePosition = (int) x.lineTag;
+        	characterPosition = (int) x.characterTag;
             if (name == null) {
             	System.out.print(" - Error: " + "Mismatched close tag " + token + "\n");
             	errorStack = errorStack + (" - Error: " + "Mismatched close tag " + token + "\n"); 
@@ -156,7 +176,9 @@ public class XML {
             	return false;
             } else
             {
-            	context.append(token + " - закрывающий тег \n");
+            	context.append(token +" ("+ position + "," + linePosition + "," + characterPosition + ")"+ " - закрывающий тег \n");
+            	context.append(LINE);
+            	context.append(x.previous+" ("+ (x.index +1) + "," + x.line + "," + x.character + ")" + " - закрывающая скобка \n");
             	context.append(LINE);
             }
             return true;
@@ -166,23 +188,34 @@ public class XML {
         	errorStack = errorStack + (" - Error: " + "Misshaped tag" + "\n");
         	return false;
         } else {
-        	
-            tagName = (String) token;
+           
+            try{
+            	 tagName = (String) token;
+                }catch(ClassCastException e){  	      	
+                }
             
             token = null;
             for (;;) {
                 if (token == null) {
+                	position = (int) x.index + 1;
+                	linePosition = (int) x.line;
+                	characterPosition = (int) x.character;
                     token = x.nextToken();
                 }
                 if (token instanceof String) {
-                    string = (String) token;
-                    
+                    string = (String) token + " ("+ position + "," + linePosition + "," + characterPosition + ")";
+                    position = (int) x.index +1;
+                    linePosition = (int) x.line;
+                    characterPosition = (int) x.character;
                     token = x.nextToken();
                     if (token == EQ) {    
-                    	tempContext.append(string + " - атрибут \n");
+                    	tempContext.append(string +" - атрибут \n");
                     	tempContext.append(LINE);
-                        tempContext.append( token.toString()+ " - оператор присвоения \n");
+                        tempContext.append( token.toString() + " ("+ position+ "," + linePosition + "," +  characterPosition + ")"+  " - оператор присвоения \n");
                         tempContext.append(LINE);
+                        position = (int) x.index + 1;
+                        linePosition = (int) x.line;
+                        characterPosition = (int) x.character;
                         token = x.nextToken();
                         if (!(token instanceof String)) {
                         	System.out.print(" - Error: " + "Missing value" + "\n");
@@ -190,7 +223,7 @@ public class XML {
                         	return false;
                         }
             
-                        tempContext.append((String) token + " - значение атрибута \n");
+                        tempContext.append((String) token+ " ("+ position + "," + linePosition + "," + characterPosition +")" + " - значение атрибута \n");
                         tempContext.append(LINE);
                         token = null;
                     } else {
@@ -214,7 +247,8 @@ public class XML {
                     return false;
 
                 } else if (token == GT) {
-                     tempContext.append(token.toString() + " - закрывающая скобка \n");
+                	 
+                     tempContext.append(token.toString()+" ("+ position + "," + linePosition + "," + characterPosition + ")" + " - закрывающая скобка \n");
                      tempContext.append(LINE);
                     for (;;) {
                         token = x.nextContent();
@@ -233,19 +267,20 @@ public class XML {
                             }
 
                         } else if (token == LT) {
-                        	tempContext.append(token.toString() + " - открывающая скобка \n");
+                        	tempContext.append(token.toString() + " ("+ ((int)x.index+1) + "," + x.line + "," + x.character + ")" + " - открывающая скобка \n");
                         	tempContext.append(LINE);
                             if (parse(x, tempContext, tagName)) {
                                 if (tempContext.length() == 0) {
-                                    context.append(tagName + " - название тега \n");
+                                    context.append(tagNameTemp + " - название тега \n");
                                     context.append(LINE);
                                 } else if (tempContext.length() == 1) {
-                                    context.append(tagName + " - название тега \n");
+                                    context.append(tagNameTemp + " - название тега \n");
                                     context.append(LINE);
                                 } else {
-                                    context.append(tagName + " - название тега \n");
+                                    context.append(tagNameTemp + " - название тега \n");
                                     context.append(LINE);
                                     context.append(tempContext);
+                                    
                                 }
                                 return false;
                             }
@@ -270,16 +305,27 @@ public class XML {
      */
     public static StringBuilder xmlAnalysisMethod(InputStream string){
     	StringBuilder sb = new StringBuilder();
-        XMLTokener x = new XMLTokener(string);
+        XMLTokener x = null;
+		try {
+			x = new XMLTokener(string);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        int position = 0;
+        int line = 0;
+        int character = 0;
         while (x.more() && x.skipPast("<")) {
+        	position = (int) x.index + 1;
+        	line = (int) x.line;
+        	character = (int) x.character;
             parse(x, sb, null);
         }
         if(errorStack != ""){
         	sb.setLength(0);
         	sb.append(errorStack);
         }else{
-        	sb.insert(0, "< - открывающая скобка \n" + LINE);
-        	sb.append("> - закрывающая скобка \n");
+        	sb.insert(0, "< ("+position+","+line+","+character+")- открывающая скобка \n" + LINE);
         }
         return sb;
     }

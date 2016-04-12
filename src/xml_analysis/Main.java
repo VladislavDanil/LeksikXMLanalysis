@@ -14,6 +14,7 @@ public class Main {
 	public static void main(String[] args) {
 		x = new XML();
 		StringBuilder q = new StringBuilder();
+		@SuppressWarnings("resource")
 		Scanner ins = new Scanner(System.in);
         System.out.print("Введите путь до файла: ");
         String name = ins.nextLine();
@@ -21,14 +22,16 @@ public class Main {
 		InputStream in = null;
 		try {
 			in = new FileInputStream(file.getAbsoluteFile());
+			q = XML.xmlAnalysisMethod(in);
 		} catch (FileNotFoundException e) {
 			System.out.println("Неверно введенный путь!");
 		}
-		    q = XML.xmlAnalysisMethod(in);
+		    
 			try {
 				in.close();
 			} catch (IOException e2) {
-				e2.printStackTrace();
+			} catch (NullPointerException e){
+				
 			}
 		name = name.replaceAll(".xml", "_result_analysis.txt");
 		File fileOut = new File(name);
@@ -39,7 +42,7 @@ public class Main {
 		}
 		try {
 			OutputStreamWriter myfile = 
-					new OutputStreamWriter( new FileOutputStream(fileOut.getAbsoluteFile()));
+					new OutputStreamWriter( new FileOutputStream(fileOut.getAbsoluteFile()), "UTF8");
 			
 			myfile.append(q);
 			myfile.close();

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 
 /**
  * XMLTokener реализует методы для парсинга xml документа.
@@ -13,14 +14,17 @@ import java.io.Reader;
 public class XMLTokener{
 
    public static final java.util.HashMap<String, Character> entity;
-   @SuppressWarnings("unused")
-private long    character;
+   public long    character;
    private boolean eof;
    public long    index;
    public long    line;
    public char    previous;
    private Reader  reader;
    private boolean usePrevious;
+   
+   public long    indexTag;
+   public long    lineTag;
+   public long    characterTag;
 
    static {
        entity = new java.util.HashMap<String, Character>(8);
@@ -73,7 +77,7 @@ private long    character;
 
 
     /**
-     * Осуществляет переходы между лексемами
+     * Обрабатывает содежимое тегов
      *
      * @return Лексема. Строка, знак, null.
      */
@@ -90,10 +94,12 @@ private long    character;
             return XML.LT;
         }
         sb = new StringBuilder();
-        for (;;) {
+        long position = index;
+        long linePosition = line;
+        for (;;) {      	
             if (c == '<' || c == 0) {
                 back();
-                return sb.toString().trim();
+                return sb.toString().trim() + " ("+ position + "," + linePosition + "," + character + ")";
             }
             if (c == '&') {
                 sb.append(nextEntity(c));
@@ -189,7 +195,7 @@ private long    character;
         }
     }
 
-
+    
     /**
      * Возвращает лексемы.
      * @return строка или символ.
@@ -200,7 +206,11 @@ private long    character;
         StringBuilder sb;
         do {
             c = next();
+            
         } while (Character.isWhitespace(c));
+        indexTag = index;
+        lineTag = line;
+        characterTag = character;
         switch (c) {
         case 0:
         	System.out.print(" - Error: " + "Misshaped element" + "\n");
@@ -402,8 +412,9 @@ private long    character;
      /**
       * Конструктор XMLTokener из строки.
       * @param строку для другого конструктора.
+     * @throws UnsupportedEncodingException 
       */
-     public XMLTokener(InputStream s) {
-    	 this(new InputStreamReader(s));
+     public XMLTokener(InputStream s) throws UnsupportedEncodingException {
+    	 this(new InputStreamReader(s, "UTF-8"));
      }
 }
